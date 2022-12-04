@@ -1,0 +1,64 @@
+stages:
+  - build
+  - style_tests
+  - integration_tests
+  - deploy
+
+Build:
+  stage: build 
+  tags:
+    - blackwoo
+  script:
+    - cd src
+    - make
+  artifacts:
+    paths:
+      - src/cat/s21_cat
+      - src/grep/s21_grep
+    expire_in: 30 days
+  after_script:
+    - cd src/sh
+    - chmod +x ci-notify.sh
+    - ./ci-notify.sh CI 1
+
+Style_Tests:
+  stage: style_tests
+  tags:
+    - blackwoo
+  script:
+    - cd src/cat
+    - python3 ../../materials/linters/cpplint.py --extensions=c *.c    
+    - cd ../grep
+    - python3 ../../materials/linters/cpplint.py --extensions=c *.c
+  after_script:
+    - cd src/sh
+    - chmod +x ci-notify.sh
+    - ./ci-notify.sh CI 1
+
+Integration_Tests:
+  stage: integration_tests
+  tags:
+    - blackwoo
+  script:
+    - cd src
+    - make test
+  after_script:
+    - cd src/sh
+    - echo "$CI_JOB_STATUS"
+    - chmod +x ci-notify.sh
+    - ./ci-notify.sh CI 0
+
+Deploy:
+  stage: deploy
+  when: manual
+  tags:
+    - blackwoo
+  script:
+    - cd src/sh
+    - chmod 777 run.sh
+    - chmod 777 copy.sh
+    - ./run.sh
+  after_script:
+    - cd src/sh
+    - chmod +x ci-notify.sh
+    - ./ci-notify.sh CD 0
